@@ -1,47 +1,51 @@
 ﻿using UnityEngine;
-using System.Collections;
 
-public class BulletScript : MonoBehaviour {
+public class BulletScript : MonoBehaviour
+{
+    [Tooltip("Furthest distance bullet will look for target")]
+    public float maxDistance = 1000f;
 
-	[Tooltip("Furthest distance bullet will look for target")]
-	public float maxDistance = 1000000;
-	RaycastHit hit;
-	[Tooltip("Prefab of wall damange hit. The object needs 'LevelPart' tag to create decal on it.")]
-	public GameObject decalHitWall;
-	[Tooltip("Decal will need to be sligtly infront of the wall so it doesnt cause rendeing problems so for best feel put from 0.01-0.1.")]
-	public float floatInfrontOfWall;
-	[Tooltip("Blood prefab particle this bullet will create upoon hitting enemy")]
-	public GameObject bloodEffect;
-	[Tooltip("Put Weapon layer and Player layer to ignore bullet raycast.")]
-	public LayerMask ignoreLayer;
+    [Tooltip("Prefab of wall damage decal")]
+    public GameObject decalHitWall;
 
-    /*
-	* Uppon bullet creation with this script attatched,
-	* bullet creates a raycast which searches for corresponding tags.
-	* If raycast finds somethig it will create a decal of corresponding tag.
-	*/
-    void Update()
+    [Tooltip("Offset to prevent z-fighting with wall surface")]
+    public float floatInfrontOfWall = 0.05f;
+
+    [Tooltip("Blood effect prefab to instantiate on enemy hit")]
+    public GameObject bloodEffect;
+
+    [Tooltip("Layers to ignore in the raycast")]
+    public LayerMask ignoreLayer;
+
+    void Start()
     {
+        RaycastHit hit;
         if (Physics.Raycast(transform.position, transform.forward, out hit, maxDistance, ~ignoreLayer))
         {
-            if (decalHitWall && hit.transform.tag == "LevelPart")
+            // Hit wall
+            if (hit.transform.CompareTag("LevelPart") && decalHitWall != null)
             {
                 Instantiate(decalHitWall, hit.point + hit.normal * floatInfrontOfWall, Quaternion.LookRotation(hit.normal));
             }
-            if (hit.transform.tag == "Player")
+
+            // Hit player
+            if (hit.transform.CompareTag("Player"))
             {
-                // Aplica dano ao jogador atingido
                 PlayerHealth health = hit.transform.GetComponent<PlayerHealth>();
-                if (health != null)
+                if (health != null && health.IsSpawned)
                 {
-                    health.TakeDamage(25); // Exemplo: 25 de dano
+                    // Solicita ao servidor que aplique o dano
+                    health.TakeDamageServerRpc(25);
                 }
-                Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
+
+                if (bloodEffect != null)
+                {
+                    Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
+                }
             }
-            Destroy(gameObject);
         }
+
+        // Destroi o projétil após 0.1s
         Destroy(gameObject, 0.1f);
     }
-
-
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 using Unity.Netcode;
 
 public class PlayerHealth : NetworkBehaviour
@@ -10,13 +11,18 @@ public class PlayerHealth : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (IsServer)
+        {
             currentHealth.Value = maxHealth;
+        }
     }
 
     [ServerRpc]
-    public void TakeDamageServerRpc(int amount)
+    public void TakeDamageServerRpc(int damage)
     {
-        currentHealth.Value -= amount;
+        if (currentHealth.Value <= 0) return;
+
+        currentHealth.Value -= damage;
+
         if (currentHealth.Value <= 0)
         {
             Die();
@@ -25,7 +31,8 @@ public class PlayerHealth : NetworkBehaviour
 
     void Die()
     {
-        // Lógica de morte
+        // Lógica de morte (pode incluir respawn, desativação etc.)
         gameObject.SetActive(false);
     }
 }
+
